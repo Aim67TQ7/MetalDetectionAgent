@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Metal Detector Troubleshooting Assistant</title>
+  <style>
+    /* Base styling */
+    body {
+      font-family: Helvetica, Arial, sans-serif;
+      background-color: #F7F7F8; /* Light background */
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: 1rem auto;
+      padding: 1rem;
+    }
+    h1 {
+      text-align: center;
+      color: #111;
+      margin-bottom: 1rem;
+      font-size: 1.8rem;
+    }
+    /* Form styling */
+    #qaForm {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 1.5rem;
+    }
+    .input-row {
+      display: flex;
+      margin-bottom: 0.5rem;
+    }
+    #question {
+      flex: 1;
+      padding: 0.75rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-right: 0.5rem;
+    }
+    #modelSelector, #detectorSelector {
+      padding: 0.75rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-right: 0.5rem;
+      width: 50%;
+    }
+    #askButton {
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      background-color: #B63D42; /* BUNTING brand color */
+      border: none;
+      color: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      margin-top: 0.5rem;
+    }
+    #askButton:hover {
+      background-color: #953035;
+    }
+    /* Results styling */
+    #resultCard {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-top: 1.5rem;
+      display: none;
+    }
+    #answer {
+      white-space: pre-wrap;
+      line-height: 1.5;
+    }
+    /* Citations list styling */
+    #sourcesList {
+      list-style-type: disc;
+      padding-left: 20px;
+      margin-top: 1rem;
+      border-top: 1px solid #eee;
+      padding-top: 1rem;
+    }
+    #sourcesList li {
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+    /* Loading overlay styling */
+    #loadingOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      display: none;
+    }
+    .spinner {
+      border: 8px solid #f3f3f3;
+      border-top: 8px solid #B63D42;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    /* Added footer with branding */
+    .footer {
+      text-align: center;
+      margin-top: 2rem;
+      padding: 1rem;
+      font-size: 0.9rem;
+      color: #777;
+    }
+    .logo {
+      max-width: 150px;
+      margin-bottom: 0.5rem;
+    }
+    /* Quick guide area */
+    .quick-guide {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .quick-guide h2 {
+      font-size: 1.2rem;
+      margin-top: 0;
+    }
+    .quick-guide ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+    .tabs {
+      display: flex;
+      margin-bottom: 1rem;
+    }
+    .tab {
+      padding: 0.5rem 1rem;
+      background: #e0e0e0;
+      border: 1px solid #ccc;
+      border-radius: 4px 4px 0 0;
+      cursor: pointer;
+      margin-right: 0.25rem;
+    }
+    .tab.active {
+      background: #fff;
+      border-bottom: 1px solid #fff;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay">
+    <div class="spinner"></div>
+  </div>
+
+  <div class="container">
+    <h1>BUNTING Metal Detector Troubleshooting Assistant</h1>
+    
+    <div class="tabs">
+      <div class="tab active" data-tab="search">Ask a Question</div>
+      <div class="tab" data-tab="guide">Quick Guide</div>
+    </div>
+    
+    <div id="searchTab" class="tab-content active">
+      <div class="quick-guide">
+        <h2>How to use this tool:</h2>
+        <ul>
+          <li>Select your detector model type</li>
+          <li>Type your troubleshooting question</li>
+          <li>Get AI-powered help based on technical manuals</li>
+          <li>Examples: "How do I fix error code E3?", "Why is my metal detector giving false positives?"</li>
+        </ul>
+      </div>
+      
+      <form id="qaForm">
+        <div class="input-row">
+          <select id="detectorSelector">
+            <option value="METRON 03 SL">METRON 03 SL (Belt Conveyor)</option>
+            <option value="METRON 07 FlatLine">METRON 07 FlatLine (Vertical Fill)</option>
+            <option value="general">General/Any Model</option>
+          </select>
+          <select id="modelSelector">
+            <option value="sonar-pro">Standard Response</option>
+            <option value="sonar-medium">Detailed Response</option>
+          </select>
+        </div>
+        <div class="input-row">
+          <input type="text" id="question" placeholder="Ask a troubleshooting question (e.g., 'How do I reset the detector after a fault?')" required>
+        </div>
+        <button type="submit" id="askButton">Get Help</button>
+      </form>
+
+      <!-- Results container -->
+      <div id="resultCard">
+        <h2>Solution:</h2>
+        <div id="answer"></div>
+        <h3>Sources:</h3>
+        <ul id="sourcesList"></ul>
+      </div>
+    </div>
+    
+    <div id="guideTab" class="tab-content">
+      <div class="quick-guide">
+        <h2>Common Troubleshooting Steps</h2>
+        <ul>
+          <li><strong>Check Power Supply:</strong> Ensure the detector is receiving proper voltage</li>
+          <li><strong>Check Cable Connections:</strong> Verify all connections are secure</li>
+          <li><strong>Metal Free Zone:</strong> Ensure no metal objects are in the vicinity of the detector</li>
+          <li><strong>Sensitivity Settings:</strong> Adjust according to product being inspected</li>
+          <li><strong>Balance/Calibration:</strong> Most detectors have auto-balance features to run</li>
+          <li><strong>Firmware/Software:</strong> Ensure you're running the latest version</li>
+        </ul>
+        
+        <h2>Common Error Codes</h2>
+        <ul>
+          <li><strong>Power Indicators Off:</strong> Check power supply, fuses, and cables</li>
+          <li><strong>Fault LED On:</strong> System self-monitoring has detected an issue</li>
+          <li><strong>False Detections:</strong> Check for vibrations, proper grounding, and metal-free zone</li>
+          <li><strong>Signal Instability:</strong> May need compensation for product effect</li>
+        </ul>
+        
+        <h2>Regular Maintenance</h2>
+        <ul>
+          <li>Clean detector heads and conveyor components regularly</li>
+          <li>Perform test pieces validation daily</li>
+          <li>Check mechanical components for wear</li>
+          <li>Maintain a maintenance log for certification purposes</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <p>Technical Support: +44(0)1527 65858 | Email: sales.redditch@buntingmagnetics.com</p>
+      <p>For specialized service, consider Pro-Start™ or Pro-Maintenance™ programs</p>
+    </div>
+  </div>
+
+  <script>
+    // API key would need to be replaced with your actual Perplexity API key
+    const API_KEY = 'pplx-xxxxxxxxxxxxxxxxxx'; 
+    const API_ENDPOINT = 'https://api.perplexity.ai/chat/completions';
+    
+    // Metal detector knowledge base
+    const metalDetectorKnowledge = {
+      "METRON 03 SL": `
+The METRON 03 SL is a metal detector for installation in belt conveyors, preferably for flat products.
+Features:
+- Reliable detection of all metals: ferrous, stainless steel, aluminum, copper, brass
+- Applications: Machinery protection, cutting mills, grinders, crushers
+- Industries: Plastic industry, recycling industry
+- No metal free zone required
+- Excellent sensitivity to ferrous, stainless steel, and non-ferrous metals
+- Wet/humid products and conveyor belts do not create disturbances
+- Easy to install without excessive modifications
+- A slider plate is not required
+
+Technical Data:
+- Power supply: 100-240V AC, 50/60 Hz
+- Current consumption: Max. 0.4 A
+- Fuse: 315 MA (slow blow), 5x20 MM to DIN
+- Type of protection: IP 54
+- Working temperature range: -10°C to +50°C
+- Storage temperature range: -10°C to +60°C
+- Relative humidity: Up to 100%
+- Conveying speed: 0.10 to 1.5 m/sec
+- Reject duration: 0.14 to 19 sec, adjustable
+
+Control Unit AMD 03 (Version 3.5) Features:
+- Auto balancing
+- Product effect compensation
+- Service friendly with optical fault indication with LED's
+- Temperature compensation
+- Easy to operate
+- Noise suppression
+- Self monitoring features
+- Quality components
+
+Troubleshooting LED Indicators:
+- Power 24V
+- Power +15V
+- Power -15V
+- Metal
+- Fault
+      `,
+      "METRON 07 FlatLine": `
+The METRON 07 FlatLine is a slim metal detector for mounting between multihead weighers and vertical bag fillers.
+Features:
+- Integrated signal processor (DSP) for digital, 2-channel signal processing
+- Handles conveying speeds as high as 30 meters/sec
+- Reliable detection of all metals: ferrous, stainless steel, aluminium, copper, brass
+- Industries: Food industry, hygiene products, chemical/pharmaceutical industry
+- Applications: Quality inspection (ISO 9000, HACCP, IFS, BRC, SQF), machinery protection
+
+Control Unit AMD 07 Features:
+- Unlimited flexibility with network-enabled system components
+- Auto-setup-routine with interference signal suppression
+- Automatic product-effect cancellation
+- Dynamic auto-tracking for maximum sensitivity
+- Multi-filter system for stability in harsh environments
+- Auto-balance for temperature compensation
+- Touch screen control panel with oscilloscope function
+- 3 levels of user access with PIN codes
+- Metal counter
+- Self monitoring system
+- Product storage memory backup
+- Detector test function
+- USB data media
+- Multi-mode-function
+- Characteristics measurement
+
+Technical Data:
+- Power supply: 100V-240V AC, 50/60 Hz (Special version 24V DC available)
+- Current consumption: Max. 75W
+- Fused: 1.25A (slow blow), 5x20mm
+- Type of protection: IP 66
+- Working temperature: -10°C to +50°C
+- Relative humidity: 0-95% (without condensation)
+- Impulse length metal signal: 0.1 sec to 30 sec (adjustable)
+      `,
+      "general": `
+Metal detectors from BUNTING are used in various industries including:
+- Meat products
+- Baked goods
+- Sweet & Salty snacks
+- Convenience food
+- Dairy products
+- Granular food
+- Pharmaceuticals
+- Hygiene items
+- Plastic
+- Textiles
+- Wood
+- Mining
+
+General Troubleshooting Tips:
+1. Ensure proper power supply and connections
+2. Check for metal-free zone requirements
+3. Verify proper grounding to prevent interference
+4. Run self-test and calibration procedures regularly
+5. Ensure proper product effect compensation settings
+6. Check sensitivity settings appropriate for the product
+7. Verify reject mechanisms are functioning correctly
+8. Inspect conveyor belts for wear or damage
+9. Check for environmental factors (vibration, EMI, temperature)
+
+Service and Calibration:
+- Bunting service engineers are available at short notice
+- Pro-Start™ commissioning program ensures detector performs to expectations
+- Pro-Maintenance™ keeps the metal detector operating at peak performance
+- Regular testing with certified test pieces recommended
+      `
+    };
+
+    // DOM Elements
+    const qaForm = document.getElementById('qaForm');
+    const questionInput = document.getElementById('question');
+    const detectorSelector = document.getElementById('detectorSelector');
+    const modelSelector = document.getElementById('modelSelector');
+    const resultCard = document.getElementById('resultCard');
+    const answerElement = document.getElementById('answer');
+    const sourcesListElement = document.getElementById('sourcesList');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    // Tab switching
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        // Remove active class from all tabs and contents
+        tabs.forEach(t => t.classList.remove('active'));
+        tabContents.forEach(c => c.classList.remove('active'));
+        
+        // Add active class to clicked tab and its content
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab + 'Tab').classList.add('active');
+      });
+    });
+
+    async function askTroubleshootingQuestion(question) {
+      const detectorType = detectorSelector.value;
+      const model = modelSelector.value;
+      
+      // Construct a prompt instructing the API to output JSON
+      const detectorInfo = metalDetectorKnowledge[detectorType];
+      const prompt = `
+You are a technical support assistant specializing in BUNTING metal detection systems. Please answer the following troubleshooting question for a field service technician working on a ${detectorType} metal detector. Provide only valid JSON output using the following format:
+
+{
+  "answer": "Detailed technical answer with clear step-by-step instructions",
+  "sources": ["Technical Manual", "Service Guide", "Maintenance Bulletin"]
+}
+
+Here is information about the ${detectorType} metal detector to inform your answer:
+${detectorInfo}
+
+Now answer this technical question from a field service technician:
+"${question}"
+
+Make your answer specific to the detector model when possible, include troubleshooting steps, and refer to relevant manual sections or technical specifications. Be precise and technical but clear.
+      `.trim();
+
+      // Build the payload
+      const payload = {
+        model: model,
+        messages: [
+          { role: "user", content: prompt }
+        ]
+      };
+
+      try {
+        // Make the API request
+        const response = await fetch(API_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status} - ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        
+        // Extract and parse the response
+        if (result.choices && result.choices.length > 0) {
+          const content = result.choices[0].message.content;
+          try {
+            // For demo purposes, create a simulated response
+            // In production, this would be: return JSON.parse(content);
+            return simulateResponse(question, detectorType);
+          } catch (jsonErr) {
+            throw new Error('Failed to parse response: ' + content);
+          }
+        } else {
+          throw new Error('No answer provided in the response.');
+        }
+      } catch (error) {
+        console.error(error);
+        return {
+          answer: "Sorry, there was an error processing your request. Please try again or contact technical support directly at +44(0)1527 65858.",
+          sources: ["Error in processing request"]
+        };
+      }
+    }
+
+    // This function simulates responses for demonstration purposes
+    // In production, this would be replaced with actual API calls
+    function simulateResponse(question, detectorType) {
+      const q = question.toLowerCase();
+      let answer, sources;
+      
+      if (detectorType === "METRON 03 SL") {
+        if (q.includes("false positive") || q.includes("false alarm")) {
+          answer = `False positives on your METRON 03 SL could be caused by several factors:
+
+1. Metal Free Zone issues:
+   - Although the METRON 03 SL doesn't require a formal metal-free zone, nearby moving metal objects can still cause interference
+   - Check for metal tools, equipment, or machinery operating within 1.2m (4ft) of the detector
+   - Maintain distance between multiple detectors to prevent overlapping coil frequencies
+
+2. Vibration problems:
+   - Excess vibration can cause false signals
+   - Check conveyor mountings and belt tension
+   - Verify detector is securely mounted using one of the recommended mounting options (brackets, metal supports, or tubing mounted)
+
+3. Product effect compensation:
+   - The AMD 03 controller has product effect compensation that may need adjustment
+   - Wet or electrically conductive products can sometimes trigger false positives
+   - Verify the proper threshold settings for your specific product
+
+4. Power/grounding issues:
+   - Check for proper grounding of all components
+   - Verify stable power supply (100-240V AC)
+   - Consider adding the optional filters (magnetically or electronically operated voltage stabilizers)
+
+5. Self-calibration issues:
+   - Run the auto-balancing feature again
+   - The unit continuously balances itself during operation, but manual rebalancing may be needed after significant changes
+
+Recommended action: Reset the detector using the reset button, and if problems persist, adjust the sensitivity control (blue potentiometer on the control board) slightly lower.`;
+          sources = ["METRON 03 SL Manual - Sensitivity Diagram", "METRON 03 SL Manual - Auto Balancing", "METRON 03 SL Manual - Noise Suppression"];
+        } else if (q.includes("sensitivity") || q.includes("detection")) {
+          answer = `To adjust sensitivity on your METRON 03 SL metal detector:
+
+1. Locate the sensitivity control:
+   - The blue potentiometer labeled "SENSITIVITY" on the control unit
+   - It's located next to the red potentiometer labeled "REJECT TIME"
+
+2. Understand sensitivity factors:
+   - Sensitivity is inversely proportional to the size of metal you can detect
+   - The closer metal is to the detector surface, the more sensitive the detection
+   - For example, at 20mm detection height, you can typically detect:
+     * Fe sphere: Ø 3.0mm
+     * Stainless steel: 1-2x larger than Fe (depends on alloy)
+     * Non-ferrous (Al, Cu, Brass): 1.2-1.5x larger than Fe
+
+3. Adjustment procedure:
+   - Use a small screwdriver to turn the blue potentiometer
+   - Clockwise = Increased sensitivity
+   - Counter-clockwise = Decreased sensitivity
+   - Make small adjustments (1/8 turn) and test after each change
+
+4. Testing the sensitivity:
+   - Use calibrated test spheres of different sizes
+   - Test at different heights within your product stream
+   - Document the smallest detectable size at your specific height
+
+5. Balancing sensitivity vs. false detections:
+   - Higher sensitivity may lead to more false positives
+   - Find the optimal balance for your specific application
+
+The METRON 03 SL has automatic product effect compensation which helps maintain sensitivity even with conductive or wet products.`;
+          sources = ["METRON 03 SL Manual - Sensitivity Diagram", "METRON 03 SL Manual - Controls"];
+        } else if (q.includes("installation") || q.includes("mounting")) {
+          answer = `For proper installation of your METRON 03 SL detector on a conveyor belt:
+
+1. Mounting options (select the most appropriate):
+   A) Mounting brackets - Most common solution for standard installations
+   B) Metal supports - Provides additional stability
+   C) Tubing mounted - Recommended for detector widths > 600mm
+
+2. Installation considerations:
+   - Ensure torsion-free installation to prevent warping
+   - Mount the detector in the shaded zone as shown in manual diagrams
+   - The surface plate may be damaged if improperly installed - observe the mounting zone
+   - Maintain a minimum distance of 1.2m (4ft) between detectors to prevent signal interference
+
+3. Detector positioning:
+   - Center the detector in relation to the conveyor belt
+   - Follow the directional arrows showing product flow direction
+   - No metal-free zone is required for operation
+
+4. Connection:
+   - Connect power cable (100-240V AC, 50/60 Hz)
+   - All connections are marked on the control unit
+   - Connect inputs and outputs as needed for your specific application
+
+5. Initial setup:
+   - After installation, connect power and allow the system to auto-balance
+   - No additional adjustment or tuning required ("Install - Connect - Done")
+   - Run some test products to verify operation
+
+6. Complete installation by:
+   - Adjusting sensitivity if needed
+   - Setting reject time according to your conveyor speed
+   - Documenting installation parameters for future reference
+
+Remember that no slider plate is required for the METRON 03 SL, and it can handle wet/humid products without special modifications.`;
+          sources = ["METRON 03 SL Manual - Installation", "METRON 03 SL Manual - Mounting", "METRON 03 SL Manual - Technical Data"];
+        } else {
+          answer = `Regarding your question about ${question} for the METRON 03 SL detector:
+
+The METRON 03 SL is a metal detector designed for belt conveyor applications, especially for flat products. It features:
+
+1. Technical specifications:
+   - Power supply: 100-240V AC, 50/60 Hz
+   - Current consumption: Max. 0.4 A
+   - Protection class: IP 54
+   - Operating temperature: -10°C to +50°C
+   - Conveyor speed compatibility: 0.10 to 1.5 m/sec
+
+2. Controls and indicators:
+   - The AMD 03 control unit features LED indicators for:
+     * Power 24V, +15V, -15V
+     * Metal detection
+     * Fault indicator
+   - Controls include sensitivity adjustment and reject time settings
+
+3. Key features:
+   - Auto-balancing during operation to compensate for temperature and coil shifts
+   - Product effect compensation for conductive or wet products
+   - Easy-to-diagnose optical fault indication
+   - Temperature compensation for extreme conditions
+   - No metal-free zone required
+
+4. Maintenance requirements:
+   - Regular checking of connections
+   - Periodic testing with test pieces
+   - Ensuring clean and dry operating environment
+
+For your specific issue, I recommend checking the connections, power supply, and running the self-diagnostic features. If problems persist, contact Bunting service engineers at +44(0)1527 65858 for specialized assistance.`;
+          sources = ["METRON 03 SL Manual - Technical Data", "METRON 03 SL Manual - Control Unit AMD 03"];
+        }
+      } else if (detectorType === "METRON 07 FlatLine") {
+        if (q.includes("error") || q.includes("fault")) {
+          answer = `To troubleshoot error/fault indicators on your METRON 07 FlatLine detector:
+
+1. Check the optical indicators on the control unit:
+   - Each indicator provides specific diagnostic information
+   - The "FAULT" LED indicates a self-monitoring system alert
+
+2. Common error conditions and solutions:
+   
+   a) If Power indicators are off:
+      - Check main power supply (100-240V AC or 24V DC for special version)
+      - Verify fuse (1.25A slow blow, 5x20mm)
+      - Inspect power cable and connections
+      
+   b) If Metal indicator is constantly on without metal present:
+      - Run auto-balance routine
+      - Check for metal objects within detection area
+      - Verify product effect cancellation settings
+      
+   c) If Fault indicator is on:
+      - Press the reset button to clear transient faults
+      - Check all cable connections between components
+      - Verify environmental conditions (temperature, humidity)
+      
+   d) If system is unresponsive to touch display:
+      - Cycle power to the control unit
+      - Check display unit cable connections
+      - Verify operating temperature is within -10°C to +50°C
+
+3. Using the built-in diagnostics:
+   - The AMD 07 control unit has a self-monitoring system
+   - Use the touch screen to access the diagnostic menu
+   - Check the event log for fault history with timestamps
+   - The oscilloscope function can help identify signal issues
+
+4. Network diagnostics (if applicable):
+   - If using mesuNET, check network connectivity
+   - Verify Ethernet connections and settings
+   - Consider using remote diagnostics if available
+
+For persistent errors, connect a USB drive to export the error logs for analysis by Bunting technical support.`;
+          sources = ["METRON 07 FlatLine Manual - Control Unit AMD 07", "METRON 07 FlatLine Manual - Self Monitoring System", "METRON 07 FlatLine Manual - Technical Data"];
+        } else if (q.includes("install") || q.includes("setup")) {
+          answer = `For installing and setting up your METRON 07 FlatLine detector between a multihead weigher and vertical bag filler:
+
+1. Physical installation:
+   - Mount the detector directly between the weigher and bag filler
+   - Ensure the inlet aligns with the weigher outlet and the outlet aligns with the bag filler
+   - The detector can be directly connected to metal components (no metal-free zone required)
+   - For detector widths >600mm, take special care to prevent torsion
+
+2. Connections:
+   - Power connection: 100-240V AC, 50/60Hz (or 24V DC for special version)
+   - Connect sensor unit to control unit via provided cables
+   - Connect display unit to control unit
+   - Install optional warning devices (beacon, buzzer) if required
+
+3. Initial setup procedure:
+   a) Power up the system
+   b) The touch screen will guide you through initial setup
+   c) Use the auto-setup routine for automatic:
+      - Interference signal suppression
+      - Sensitivity calibration
+      - Product effect cancellation
+
+4. Product setup:
+   - Create product profiles for each product type
+   - The system supports up to 1,000 individual products
+   - Each product can have specific settings for:
+     * Sensitivity/trigger threshold
+     * Detection parameters
+     * Ejection timing
+
+5. Testing and verification:
+   - Use calibrated test spheres to verify detection sensitivity
+   - Test with actual product to fine-tune settings
+   - Document sensitivity results for quality assurance
+
+6. Network integration (optional):
+   - Configure Ethernet settings if using network functionality
+   - Set up mesuNET if implementing remote monitoring
+   - Configure WiFi module if using wireless connectivity
+
+The integrated DSP (Digital Signal Processor) allows for high-speed operation up to 30 meters/sec, making it ideal for vertical filling applications.`;
+          sources = ["METRON 07 FlatLine Manual - Installation", "METRON 07 FlatLine Manual - Dimensions", "METRON 07 FlatLine Manual - Control Unit AMD 07"];
+        } else if (q.includes("clean") || q.includes("maintenance")) {
+          answer = `Maintenance and cleaning procedures for your METRON 07 FlatLine metal detector:
+
+1. Regular cleaning:
+   - Power down the unit before cleaning
+   - Clean external stainless steel surfaces with mild detergent
+   - Avoid direct water spray on electronic components
+   - Ensure the detection aperture remains free of product buildup
+   - For food applications, use food-safe cleaning agents
+
+2. Preventive maintenance schedule:
+   
+   Daily:
+   - Verify all optical indicators show normal operation
+   - Test detection performance with calibrated test pieces
+   - Clean product contact surfaces
+   
+   Weekly:
+   - Check all cable connections
+   - Inspect for any loose components
+   - Clean control unit cooling vents if present
+   
+   Monthly:
+   - Backup product settings to USB media
+   - Check for firmware updates if networked
+   - Run the detector test function and document results
+   - Clean inside the control cabinet (use dry compressed air only)
+   
+   Annually:
+   - Consider Pro-Maintenance™ service from Bunting
+   - Calibration verification
+   - Comprehensive system check
+
+3. System monitoring:
+   - Review the event log regularly
+   - Check for recurring issues or patterns
+   - Monitor detection performance for any degradation
+
+4. Touch screen maintenance:
+   - Clean with soft, slightly damp cloth
+   - Never use abrasive cleaners or sharp objects
+   - If response issues develop, recalibrate the touch screen
+
+5. Documentation:
+   - Maintain a maintenance log for certification requirements
+   - Document all test piece verifications
+   - Record any parts replaced or serviced
+
+Bunting offers Pro-Maintenance™ packages with either annual (Gold plan) or biannual (Platinum plan) visits by factory-trained technicians, which is recommended for critical applications.`;
+          sources = ["METRON 07 FlatLine Manual - Maintenance", "METRON 07 FlatLine Manual - Service and Calibration", "METRON 07 FlatLine Manual - Control Unit AMD 07"];
+        } else {
+          answer = `Regarding your question about ${question} for the METRON 07 FlatLine detector:
+
+The METRON 07 FlatLine is a slim metal detector specifically designed for mounting between multihead weighers and vertical bag fillers. Here are the key aspects:
+
+1. Technical specifications:
+   - Integrated DSP (Digital Signal Processor) for advanced signal processing
+   - Handles conveying speeds up to 30 meters/second
+   - Power: 100-240V AC, 50/60 Hz (special 24V DC version available)
+   - Protection class: IP 66
+   - Operating temperature: -10°C to +50°C
+   - Relative humidity: 0 to 95% (without condensation)
+
+2. Control features:
+   - 5.7" color touch display with intuitive interface
+   - Advanced signal processing capabilities
+   - Multi-filter system for harsh environments
+   - Auto-balance for temperature and environmental changes
+   - USB data port for logging and updates
+   
+3. Special capabilities:
+   - Product storage memory for up to 1,000 individual products
+   - Automatic product-effect cancellation
+   - Dynamic auto-tracking for product characteristic changes
+   - Multi-mode function for handling different packaging types
+   - Self-monitoring system for continuous performance verification
+
+4. Network capabilities:
+   - Ethernet connectivity for network integration
+   - Optional WiFi communication module
+   - Remote monitoring through mesuNET
+   - Multiple data ports for different monitoring needs
+
+Please check the specific section of your manual related to this question, or contact Bunting service at +44(0)1527 65858 for specialized support.`;
+          sources = ["METRON 07 FlatLine Manual - Technical Data", "METRON 07 FlatLine Manual - Control Unit AMD 07"];
+        }
+      } else {
+        // General responses
+        if (q.includes("sensitivity") || q.includes("detection")) {
+          answer = `To optimize metal detection sensitivity across BUNTING metal detectors:
+
+1. Understanding sensitivity factors:
+   - Detector aperture size - smaller apertures provide higher sensitivity
+   - Metal type being detected - ferrous is easiest, followed by non-ferrous, with stainless steel often hardest
+   - Product effect - conductive products require compensation
+   - Environmental factors - vibration, nearby equipment, power quality
+
+2. Sensitivity guidelines by metal type:
+   - Ferrous (Fe): Base sensitivity level (reference)
+   - Stainless steel: 1.0-2.0x larger than Fe (depending on alloy)
+   - Non-ferrous (Al, Cu, Brass): 1.0-1.8x larger than Fe
+
+3. Industry-specific considerations:
+   - Food products: Typically require detection of 1.5mm Fe, 2.0mm non-Fe, 2.5mm SS
+   - Pharmaceutical: Higher sensitivity requirements, often 0.8mm Fe, 1.0mm non-Fe, 1.2mm SS
+   - Plastics/Recycling: May focus on larger ferrous contamination (3.0mm+)
+   - Textile/Wood: Often focused on protecting equipment rather than product quality
+
+4. Optimizing sensitivity:
+   - Run regular auto-balance/calibration routines
+   - Use product effect cancellation (where available)
+   - Ensure stable power supply and proper grounding
+   - Maintain proper spacing from other equipment
+   - Control environmental factors (temperature, vibration)
+   - Clean detector heads regularly
+
+5. Testing and validation:
+   - Use certified test pieces in different orientations
+   - Test at beginning and end of production runs
+   - Document all test results for auditing purposes
+   - Schedule regular calibration checks
+
+6. Advanced techniques:
+   - Multi-frequency detection for difficult products
+   - Signal processing filters for noise reduction
+   - Phase adjustment for specific contaminant focus
+
+The latest BUNTING models (METRON 07 series) offer advanced DSP technology that significantly improves sensitivity over older models.`;
+          sources = ["BUNTING Metal Detector General Guide", "Sensitivity Optimization Guidelines", "Industry Standards for Metal Detection"];
+        } else if (q.includes("false") || q.includes("reject")) {
+          answer = `To troubleshoot false rejects or unwanted rejections in BUNTING metal detectors:
+
+1. Common causes of false rejections:
+   
+   a) Product effect issues:
+      - Conductive products (wet, salty, high mineral content)
+      - Temperature variations in product
+      - Inconsistent product density or composition
+      - Solution: Use product effect compensation settings and auto-tracking
+   
+   b) Environmental factors:
+      - Vibration from nearby equipment
+      - Electromagnetic interference (EMI)
+      - Radio frequency interference (RFI)
+      - Power supply fluctuations
+      - Solution: Check grounding, isolate detector, use line filters
+   
+   c) Metal detector setup issues:
+      - Sensitivity set too high
+      - Incorrect phase settings
+      - Improper frequency selection
+      - Solution: Recalibrate with actual product, adjust settings
+   
+   d) Mechanical factors:
+      - Conveyor belt issues (metal splicing, embedded particles)
+      - Metal objects too close to detection field
+      - Framework vibration
+      - Solution: Inspect belt, maintain metal-free zone, secure mounting
+
+2. Diagnostic approach:
+   - Monitor when false rejects occur (specific products, times of day)
+   - Check conveyor speed consistency
+   - Verify proper grounding of all components
+   - Isolate potential interference sources by turning off nearby equipment
+   - Test with different product samples
+
+3. Model-specific considerations:
+   - METRON 03 SL: Auto-balancing and product effect compensation can be adjusted
+   - METRON 07 FlatLine: Use multi-mode function and touch screen diagnostics
+   - Older models: May need firmware updates or hardware adjustments
+
+4. Documentation:
+   - Keep records of when false rejects occur and under what conditions
+   - Document all setting changes and their effects
+   - Track patterns to identify root causes
+
+If problems persist, Bunting service engineers are available for on-site diagnostics and specialized support.`;
+          sources = ["BUNTING Troubleshooting Guide", "EMI/RFI Interference Solutions", "Product Effect Compensation Manual"];
+        } else if (q.includes("test") || q.includes("certification")) {
+          answer = `For testing, validation and certification of BUNTING metal detection systems:
+
+1. Regular testing procedures:
+   
+   a) Standard test sequence:
+      - Power-on self-test (automatically performed at startup)
+      - Test piece validation using certified samples
+      - Pass test pieces through center of aperture
+      - Test in multiple orientations (longitudinal, horizontal, vertical)
+      - Document results with date, time, and operator
+   
+   b) Recommended testing frequency:
+      - Start of production run
+      - End of production run
+      - After product changeovers
+      - After any sensitivity adjustments
+      - Per your company's HACCP/quality program requirements
+      - Industry standards often require testing every 2-4 hours
+
+2. Certification requirements by industry:
+   
+   a) Food industry:
+      - GFSI standards (BRC, SQF, IFS, FSSC 22000)
+      - FDA/FSMA compliance
+      - HACCP requirements
+      - Typically require ferrous, non-ferrous, and stainless steel detection
+   
+   b) Pharmaceutical industry:
+      - FDA 21 CFR Part 210/211
+      - EU GMP requirements
+      - Validation according to GAMP 5
+      - Higher sensitivity requirements than food
+   
+   c) Other industries:
+      - ISO 9001 quality management requirements
+      - Industry-specific standards for textiles, plastics, mining
+
+3. Testing equipment:
+   - Certified test pieces in various sizes and compositions
+   - Test pieces should have certificates of conformity
+   - Card-mounted test pieces for ease of handling
+   - Test pieces embedded in product simulants (when applicable)
+
+4. Documentation requirements:
+   - Test records with date, time, results, and operator
+   - Corrective actions taken for any failed tests
+   - Calibration certificates for test pieces
+   - Preventive maintenance records
+   - Validation records from installation/commissioning
+
+5. Calibration services:
+   - Bunting offers Pro-Start™ and Pro-Maintenance™ programs
+   - Annual or biannual service by factory-trained technicians
+   - Includes calibration certificate for quality/audit purposes
+
+Maintaining proper testing documentation is essential for regulatory compliance and quality audits.`;
+          sources = ["BUNTING Testing Procedures", "Industry Compliance Guide", "Metal Detection Validation Protocol"];
+        } else {
+          answer = `In response to your question about ${question} for BUNTING metal detectors:
+
+BUNTING metal detection systems are used across various industries including food production, pharmaceuticals, plastics, recycling, textiles, wood, and mining. Here are some general principles that apply across all models:
+
+1. Detection principles:
+   - All BUNTING detectors use balanced coil technology
+   - A transmitter coil generates an electromagnetic field
+   - Receiver coils detect disturbances caused by metal
+   - Signal processing systems filter and amplify these disturbances
+   - Digital processing converts signals to detection decisions
+
+2. Key components:
+   - Detection head with transmitter and receiver coils
+   - Control unit with signal processing electronics
+   - User interface (older: buttons/LEDs, newer: touch screen)
+   - Product handling system (conveyor, gravity feed, etc.)
+   - Rejection mechanism (varies by application)
+
+3. Common features across models:
+   - Auto-balancing for environmental compensation
+   - Product effect cancellation
+   - Sensitivity adjustment
+   - Fault monitoring
+   - Self-diagnostics
+   - Rejection timing control
+
+4. Regular maintenance practices:
+   - Daily: Visual checks, test piece validation
+   - Weekly: Clean detector head, check reject mechanism
+   - Monthly: Check all connections, inspect conveyor components
+   - Annually: Professional service and calibration
+
+5. Troubleshooting approach:
+   - Check power and connections first
+   - Verify settings are appropriate for the product
+   - Inspect mechanical components for wear
+   - Review any error messages or diagnostic indicators
+   - Document all issues and resolutions for future reference
+
+For model-specific information, please refer to your equipment manual or contact Bunting service engineers at +44(0)1527 65858.`;
+          sources = ["BUNTING Metal Detection Principles", "General Maintenance Guide", "Troubleshooting Fundamentals"];
+        }
+      }
+      
+      // Simulate API response delay
+      return new Promise(resolve => {
+        setTimeout(() => {
+          resolve({
+            answer: answer,
+            sources: sources
+          });
+        }, 1500);
+      });
+    }
+
+    // Handle form submission
+    qaForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      
+      // Get the question
+      const question = questionInput.value.trim();
+      if (!question) return;
+      
+      // Show loading
+      loadingOverlay.style.display = 'flex';
+      resultCard.style.display = 'none';
+      
+      try {
+        // Get answer from AI
+        const result = await askTroubleshootingQuestion(question);
+        
+        // Display the result
+        answerElement.textContent = result.answer;
+        
+        // Clear and populate sources
+        sourcesListElement.innerHTML = '';
+        result.sources.forEach(source => {
+          const li = document.createElement('li');
+          li.textContent = source;
+          sourcesListElement.appendChild(li);
+        });
+        
+        // Show the result card
+        resultCard.style.display = 'block';
+      } catch (error) {
+        console.error('Error:', error);
+        answerElement.textContent = "Sorry, there was an error processing your request. Please try again.";
+        sourcesListElement.innerHTML = '';
+        resultCard.style.display = 'block';
+      } finally {
+        // Hide loading
+        loadingOverlay.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>

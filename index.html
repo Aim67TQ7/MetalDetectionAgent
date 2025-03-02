@@ -983,45 +983,80 @@ For model-specific information, please refer to your equipment manual or contact
       });
     }
 
-    // Handle form submission
-    qaForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
+// Handle form submission
+qaForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  
+  // Get the question
+  const question = questionInput.value.trim();
+  if (!question) return;
+  
+  // Show loading
+  loadingOverlay.style.display = 'flex';
+  resultCard.style.display = 'none';
+  
+  // If we're in an iframe, send message to parent website
+  if (window.parent !== window) {
+    window.parent.postMessage({
+      type: 'apiRequest',
+      question: question,
+      detectorModel: detectorSelector.value,
+      responseModel: modelSelector.value
+    }, "*"); // Use "*" during development, but replace with your actual parent website origin in production
+  } else {
+    // Fallback to the existing local functionality if not in an iframe
+    try {
+      const result = await askTroubleshootingQuestion(question);
       
-      // Get the question
-      const question = questionInput.value.trim();
-      if (!question) return;
+      // Display the result
+      answerElement.textContent = result.answer;
       
-      // Show loading
-      loadingOverlay.style.display = 'flex';
-      resultCard.style.display = 'none';
+      // Clear and populate sources
+      sourcesListElement.innerHTML = '';
+      result.sources.forEach(source => {
+        const li = document.createElement('li');
+        li.textContent = source;
+        sourcesListElement.appendChild(li);
+      });
       
-      try {
-        // Get answer from AI
-        const result = await askTroubleshootingQuestion(question);
-        
-        // Display the result
-        answerElement.textContent = result.answer;
-        
-        // Clear and populate sources
-        sourcesListElement.innerHTML = '';
-        result.sources.forEach(source => {
-          const li = document.createElement('li');
-          li.textContent = source;
-          sourcesListElement.appendChild(li);
-        });
-        
-        // Show the result card
-        resultCard.style.display = 'block';
-      } catch (error) {
-        console.error('Error:', error);
-        answerElement.textContent = "Sorry, there was an error processing your request. Please try again.";
-        sourcesListElement.innerHTML = '';
-        resultCard.style.display = 'block';
-      } finally {
-        // Hide loading
-        loadingOverlay.style.display = 'none';
-      }
+      // Show the result card
+      resultCard.style.display = 'block';
+    } catch (error) {
+      console.error('Error:', error);
+      answerElement.textContent = "Sorry, there was an error processing your request. Please try again.";
+      sourcesListElement.innerHTML = '';
+      resultCard.style.display = 'block';
+    } finally {
+      // Hide loading
+      loadingOverlay.style.display = 'none';
+    }
+  }
+});
+
+// Listen for messages from parent website
+window.addEventListener('message', async (event) => {
+  // In production, verify the origin: if (event.origin !== "https://your-trusted-website.com") return;
+  
+  // Process the response from the parent
+  if (event.data.type === 'apiResponse') {
+    // Hide loading
+    loadingOverlay.style.display = 'none';
+    
+    // Display the result
+    answerElement.textContent = event.data.answer;
+    
+    // Clear and populate sources
+    sourcesListElement.innerHTML = '';
+    event.data.sources.forEach(source => {
+      const li = document.createElement('li');
+      li.textContent = source;
+      sourcesListElement.appendChild(li);
     });
+    
+    // Show the result card
+    resultCard.style.display = 'block';
+  }
+});
   </script>
 </body>
 </html>
